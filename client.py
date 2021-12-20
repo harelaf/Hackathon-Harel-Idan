@@ -1,11 +1,9 @@
-from socket import *
 import socket
 
 
 class Client:
 
     def __init__(self):
-        self.port = 13117
         self.server_ip = None
         self.server_port = None
         self.tcp_socket = None
@@ -17,9 +15,9 @@ class Client:
     def look_for_server(self):
         print("Client started, listening for offer requests...")
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        sock.bind(('', self.port))
-        # sock.bind(("0.0.0.0", 13117))
+        # sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1) # USE THIS ON LINUX
+        sock.bind(('', 13117))
 
         while True:
             data, addr = sock.recvfrom(1024)
@@ -32,6 +30,7 @@ class Client:
                 print("Failed to connect to server: UDP packet didn't contain 0x02 in MESSAGE TYPE field.")
                 continue
             self.server_port = int(data_hex[10:])
+            sock.close()
             break
 
     def connect_to_server(self):
