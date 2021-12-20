@@ -3,9 +3,9 @@ import socket
 from time import sleep
 
 class Server:
-
     def __init__(self):
-        self.serverName = "hostname"
+        self.MAGIC_COOKIE = "abcddcba"
+        self.MESSAGE_TYPE = "02"
 
     def broadcasting(self):
 
@@ -19,13 +19,13 @@ class Server:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)  # UDP
                 sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
                 sock.bind((ip, 0))
-                sock.sendto(msg, ("255.255.255.255", 5005))
+                sock.sendto(msg, ("255.255.255.255", 13117))
                 sock.close()
 
             sleep(2)
 
 s = Server()
-#s.broadcasting()
-msg = bytes.fromhex('abcddcba020001')
-d = msg.hex()
-print(d)
+s.broadcasting()
+# msg = bytes.fromhex('abcddcba020001')
+# d = msg.hex()
+# print(d)
