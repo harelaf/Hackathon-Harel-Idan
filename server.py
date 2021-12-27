@@ -1,7 +1,7 @@
 import socket
 import threading
 from style import style
-from time import sleep, time
+from time import sleep
 from scapy.arch import get_if_addr
 import random
 
@@ -10,12 +10,21 @@ class Server:
         self.ip_address = get_if_addr('eth1')
         self.player_names = ['', '']
         self.player_count = 0
-        self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.tcp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-        self.tcp_socket.bind((self.ip_address, 4567))
+        try:
+            self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.tcp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+            self.tcp_socket.bind((self.ip_address, 4567))
+        except socket.error as e:
+            print(style.WARNING + f'Initialization of TCP SOCKET failed. Server initialization failed. Exiting...' + style.ENDC)
+            exit()
         self.client_answer = [-1, '']
 
     def send_udp_offers(self):
+        """
+        Summary: This function is used to send UDP offers in broadcast, every one second, 
+                 while there are less than 2 clients connected.
+        """
+
         msg = bytes.fromhex('abcddcba02' + str(4567))
         print(f'Server started, listening on IP address {self.ip_address}')
         while self.player_count < 2:
@@ -28,6 +37,16 @@ class Server:
             sleep(1)
 
     def tcp_client_connect(self, clients):
+        """
+        Summary: This function is used to connect clients to the server using TCP.
+                 The function accepts a client, waits a few seconds until it sends the team name, if the
+                 client takes too long, we reject it.
+
+        Args:
+            clients (list of [socket, (ip, port)]): clients contains the sockets of the connected clients,
+                                                    These are later used to send messages.
+        """
+
         self.tcp_socket.listen()
         while self.player_count < 2:
             try:
@@ -37,15 +56,24 @@ class Server:
                 try:
                     player_name = str(client_socket.recv(1024), 'utf8')
                 except socket.error as e:
-                    print(f'Client: {client_ip} did not send team name in time.')
+                    print(style.WARNING + f'Client: {client_ip} did not send team name in time.' + style.ENDC)
+                    clients = clients[:-1]
                     continue
-                client_socket.settimeout(10)
                 self.player_names[self.player_count] = str(player_name)
                 self.player_count += 1
             except Exception as e:
-                print(f'Unable to connect to client.\n Exception received: {str(e)}')
+                print(style.WARNING + f'Unable to connect to client.\n Exception received: {str(e)}' + style.ENDC)
 
     def play_game(self, clients):
+        """
+        Summary: This function is used for the game logic.
+                 We send the message to the clients simultaneously and then check which one was first to answer.
+                 Then send the results to the clients.
+
+        Args:
+            clients (list of [socket, (ip, port)]): Using the tcp sockets to send messages.
+        """
+
         ans, eq = self.question_bank()
         msg = f'Welcome to Quick Maths.' \
               f'\nPlayer 1: {self.player_names[0]}' \
@@ -53,6 +81,9 @@ class Server:
               f'\n==' \
               f'\nPlease answer the following question as fast as you can:\n' \
               f'How much is {eq}?'
+        clients[0][0].settimeout(10)
+        clients[1][0].settimeout(10)
+
         clients[0][0].sendall(bytes(msg, 'utf8'))
         clients[1][0].sendall(bytes(msg, 'utf8'))
 
@@ -84,10 +115,22 @@ class Server:
         self.player_count = 0
 
     def get_answer(self, tcp_socket, team_name):
+        """
+        Summary: This function is used to parse the answer from the clients and pick the winner.
+
+        Args:
+            tcp_socket (socket): client socket
+            team_name (string): name of team
+        """
+
         try:
             ans = int(tcp_socket.recv(1024))
+        except ValueError as e:
+            print(style.RED + f'{team_name} didn\'t enter a digit!' + style.ENDC)
+            ans = -1
+            return
         except socket.error as e:
-            print(f'{team_name} ran out of time')
+            print(style.RED + f'{team_name} ran out of time!' + style.ENDC)
             return
         mutex = threading.Lock()
         mutex.acquire()
@@ -125,7 +168,21 @@ class Server:
                 continue
         return ans, eq
 
+    def end_session(self):
+        """
+        Summary: This function is used to terminate the client, if the user is done.
+        """
+
+        val = input(style.GREEN + 'Terminate server? [Y\N] ' + style.ENDC)
+        if val == 'Y':
+            self.tcp_socket.close()
+            exit(0)
+
     def run_server(self):
+        """
+        Summary: This function is used to run all of the logic of the server.
+        """
+
         while True:
             clients = []
             t1 = threading.Thread(target=self.send_udp_offers)
@@ -135,6 +192,8 @@ class Server:
             t1.join()
             t2.join()
             self.play_game(clients)
+
+            # self.end_session()
 
 
 if __name__ == '__main__':
