@@ -1,5 +1,6 @@
 import socket
 import threading
+from style import style
 from time import sleep, time
 from scapy.arch import get_if_addr
 import random
@@ -32,7 +33,12 @@ class Server:
             try:
                 client_socket, (client_ip, client_port) = self.tcp_socket.accept()
                 clients.append([client_socket, (client_ip, client_port)])
-                player_name = str(client_socket.recv(1024), 'utf8')
+                client_socket.settimeout(3)
+                try:
+                    player_name = str(client_socket.recv(1024), 'utf8')
+                except socket.error as e:
+                    print(f'Client: {client_ip} did not send team name in time.')
+                    continue
                 client_socket.settimeout(10)
                 self.player_names[self.player_count] = str(player_name)
                 self.player_count += 1
@@ -81,7 +87,7 @@ class Server:
         try:
             ans = int(tcp_socket.recv(1024))
         except socket.error as e:
-            print(f'Game Over - Client ran out of time')
+            print(f'{team_name} ran out of time')
             return
         mutex = threading.Lock()
         mutex.acquire()
@@ -120,14 +126,15 @@ class Server:
         return ans, eq
 
     def run_server(self):
-        clients = []
-        t1 = threading.Thread(target=self.send_udp_offers)
-        t2 = threading.Thread(target=self.tcp_client_connect, args=(clients,))
-        t1.start()
-        t2.start()
-        t1.join()
-        t2.join()
-        self.play_game(clients)
+        while True:
+            clients = []
+            t1 = threading.Thread(target=self.send_udp_offers)
+            t2 = threading.Thread(target=self.tcp_client_connect, args=(clients,))
+            t1.start()
+            t2.start()
+            t1.join()
+            t2.join()
+            self.play_game(clients)
 
 
 if __name__ == '__main__':
