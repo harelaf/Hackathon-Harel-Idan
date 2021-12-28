@@ -2,16 +2,19 @@ import socket
 from style import style
 from time import sleep
 from struct import unpack
+import getch
+import multiprocessing
 
 class Client:
-    def __init__(self):
+    def __init__(self, magic_cookie, message_type, client_port, team_name):
         self.server_ip = None
         self.server_port = None
         self.tcp_socket = None
 
-        self.TEAM_NAME = "JOE MAMA"
-        self.MAGIC_COOKIE = 0xabcddcba
-        self.MESSAGE_TYPE = 0x02
+        self.TEAM_NAME = team_name
+        self.client_port = client_port
+        self.MAGIC_COOKIE = magic_cookie
+        self.MESSAGE_TYPE = message_type
 
     def look_for_server(self):
         """
@@ -19,10 +22,10 @@ class Client:
                  Doesn't accept packets without MAGIC COOKIE or 02 in MESSAGE_TYPE.
         """
 
-        print(style.CYAN + "Client started, listening for offer requests..." + style.ENDC)
+        print(style.CYAN + "Listening for offer requests..." + style.ENDC)
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-        sock.bind(('', 14000))
+        sock.bind(('', self.client_port))
 
         while True:
             data, addr = sock.recvfrom(1024)
@@ -94,7 +97,8 @@ class Client:
         Summary: This function us used to get the answer from the client and send it to the server.
         """
 
-        ans = input(style.GREEN + 'Please enter the answer to the math problem: ' + style.ENDC)[0]
+        print(style.GREEN + 'Please enter the answer to the math problem: ' + style.ENDC)
+        ans = getch.getch()
         self.tcp_socket.send(bytes(ans, 'utf8'))
 
     def end_session(self):
@@ -110,6 +114,8 @@ class Client:
         """
         Summary: This function is used to run all of the logic of the client.
         """
+        
+        print(style.CYAN + f'Client started successfully!' + style.ENDC)
 
         while True:
             self.look_for_server()
@@ -117,8 +123,10 @@ class Client:
             if not success:
                 continue
             self.get_msg_from_server(style.HEADER)  # Get welcome message and math problem
-            self.send_client_answer()   # Send answer to server
-            self.get_msg_from_server(style.HEADER)  # Get game results
+            t1 = multiprocessing.Process(target=self.send_client_answer)
+            t1.start()
+            self.get_msg_from_server(style.BLUE)  # Get game results
+            t1.terminate()
             
             if self.tcp_socket is not None:
                 self.tcp_socket.close()
@@ -129,5 +137,5 @@ class Client:
 
 
 if __name__ == '__main__':
-    client = Client()
+    client = Client(magic_cookie=0xabcddcba, message_type=0x02, client_port=14000, team_name='SUS')
     client.run_client()

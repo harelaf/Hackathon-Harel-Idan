@@ -7,18 +7,22 @@ import random
 from struct import pack
 
 class Server:
-    def __init__(self):
+    def __init__(self, magic_cookie, message_type, server_port, client_port):
+        self.MAGIC_COOKIE = magic_cookie
+        self.MESSAGE_TYPE = message_type
+        self.server_port = server_port
+        self.client_port = client_port
         self.ip_address = get_if_addr('eth1')
         self.player_names = ['', '']
+        self.client_answer = [-1, '']
         self.player_count = 0
         try:
             self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.tcp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-            self.tcp_socket.bind(('', 4567))
+            self.tcp_socket.bind((self.ip_address, self.server_port))
         except socket.error as e:
             print(style.WARNING + f'Initialization of TCP SOCKET failed. Server initialization failed. Exiting...' + style.ENDC)
             exit()
-        self.client_answer = [-1, '']
 
     def send_udp_offers(self):
         """
@@ -26,15 +30,15 @@ class Server:
                  while there are less than 2 clients connected.
         """
 
-        msg = pack('IbH', 0xabcddcba, 0x02, 4567)
+        msg = pack('IbH', self.MAGIC_COOKIE, self.MESSAGE_TYPE, self.server_port)
 
-        print(style.CYAN + f'Server started, listening on IP address {self.ip_address}' + style.ENDC)
+        print(style.CYAN + f'Listening on IP address {self.ip_address}' + style.ENDC)
         while self.player_count < 2:
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-            sock.bind(('', 3332))
+            sock.bind((self.ip_address, 3332))
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-            sock.sendto(msg, ("255.255.255.255", 14000))
+            sock.sendto(msg, ("255.255.255.255", self.client_port))
             sock.close()
             sleep(1)
 
@@ -59,10 +63,12 @@ class Server:
                     player_name = str(client_socket.recv(1024), 'utf8')
                 except socket.error as e:
                     print(style.WARNING + f'Client: {client_ip} did not send team name in time.' + style.ENDC)
+                    client_socket.close()
                     clients = clients[:-1]
                     continue
                 self.player_names[self.player_count] = str(player_name)
                 self.player_count += 1
+                print(style.HEADER + f'{player_name}successfully connected to the server!' + style.ENDC)
             except Exception as e:
                 print(style.WARNING + f'Unable to connect to client.\n Exception received: {str(e)}' + style.ENDC)
 
@@ -89,12 +95,16 @@ class Server:
         clients[0][0].sendall(bytes(msg, 'utf8'))
         clients[1][0].sendall(bytes(msg, 'utf8'))
 
-        t1 = threading.Thread(target=self.get_answer, args=(clients[0][0], self.player_names[0]))
-        t2 = threading.Thread(target=self.get_answer, args=(clients[1][0], self.player_names[1]))
+        mutex = threading.Lock()
+        t1 = threading.Thread(target=self.get_answer, args=(clients[0][0], self.player_names[0], mutex))
+        t2 = threading.Thread(target=self.get_answer, args=(clients[1][0], self.player_names[1], mutex))
         t1.start()
         t2.start()
-        t1.join()
-        t2.join()
+        
+        counter = 0
+        while counter < 10 and self.client_answer == [-1, '']:
+            counter += 1
+            sleep(1)
 
         if self.client_answer == [-1, '']:
             msg = f"Game over!" \
@@ -112,11 +122,7 @@ class Server:
         clients[0][0].send(bytes(msg, 'utf8'))
         clients[1][0].send(bytes(msg, 'utf8'))
 
-        self.client_answer = [-1, '']
-        self.player_names = ['', '']
-        self.player_count = 0
-
-    def get_answer(self, tcp_socket, team_name):
+    def get_answer(self, tcp_socket, team_name, mutex):
         """
         Summary: This function is used to parse the answer from the clients and pick the winner.
 
@@ -125,16 +131,20 @@ class Server:
             team_name (string): name of team
         """
 
+        client_ans = b''
         try:
-            ans = int(tcp_socket.recv(1024))
+            client_ans = tcp_socket.recv(1024)
+            ans = int(client_ans)
         except ValueError as e:
-            print(style.RED + f'{team_name} didn\'t enter a digit!' + style.ENDC)
-            ans = -1
+            if len(client_ans) == 0:
+                print(style.RED + f'{team_name} wasn\'t fast enough to answer!' + style.ENDC)
+            else:    
+                print(style.RED + f'{team_name} didn\'t enter a digit!' + style.ENDC)
             return
         except socket.error as e:
             print(style.RED + f'{team_name} ran out of time!' + style.ENDC)
             return
-        mutex = threading.Lock()
+        
         mutex.acquire()
         if self.client_answer[0] == -1:
             self.client_answer[0] = ans
@@ -185,6 +195,8 @@ class Server:
         Summary: This function is used to run all of the logic of the server.
         """
 
+        print(style.CYAN + f'Server started successfully!' + style.ENDC)
+
         while True:
             clients = []
             t1 = threading.Thread(target=self.send_udp_offers)
@@ -195,9 +207,15 @@ class Server:
             t2.join()
             self.play_game(clients)
 
+            self.client_answer = [-1, '']
+            self.player_names = ['', '']
+            self.player_count = 0
+
             # self.end_session()
+
+            sleep(2)
 
 
 if __name__ == '__main__':
-    server = Server()
+    server = Server(magic_cookie=0xabcddcba, message_type=0x02, server_port=4567, client_port=14000)
     server.run_server()
