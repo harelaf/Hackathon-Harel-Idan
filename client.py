@@ -21,17 +21,15 @@ class Client:
 
         print(style.CYAN + "Client started, listening for offer requests..." + style.ENDC)
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        # sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1) DELETE THISSSSSSSS
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         sock.bind(('', 14000))
 
         while True:
             data, addr = sock.recvfrom(1024)
-            print(addr)
+
             try:
                 cookie, msg_type, port = unpack('IbH', data)
                 cookie, msg_type = int(hex(cookie), 16), int(hex(msg_type), 16)
-                print(type(port), port)
             except Exception as e:
                 print(e)
                 print(style.WARNING + "Failed to connect to server: UDP packet wasn't in the the right format." + style.ENDC)

@@ -14,7 +14,7 @@ class Server:
         try:
             self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.tcp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-            self.tcp_socket.bind((self.ip_address, 4567))
+            self.tcp_socket.bind(('', 4567))
         except socket.error as e:
             print(style.WARNING + f'Initialization of TCP SOCKET failed. Server initialization failed. Exiting...' + style.ENDC)
             exit()
