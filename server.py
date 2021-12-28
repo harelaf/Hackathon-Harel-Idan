@@ -4,6 +4,7 @@ from style import style
 from time import sleep
 from scapy.arch import get_if_addr
 import random
+from struct import pack
 
 class Server:
     def __init__(self):
@@ -25,14 +26,15 @@ class Server:
                  while there are less than 2 clients connected.
         """
 
-        msg = bytes.fromhex('abcddcba02' + str(4567))
-        print(f'Server started, listening on IP address {self.ip_address}')
+        msg = pack('IbH', 0xabcddcba, 0x02, 4567)
+
+        print(style.CYAN + f'Server started, listening on IP address {self.ip_address}' + style.ENDC)
         while self.player_count < 2:
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-            sock.bind((self.ip_address, 3332))
+            sock.bind(('', 3332))
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-            sock.sendto(msg, ("255.255.255.255", 13117))
+            sock.sendto(msg, ("255.255.255.255", 14000))
             sock.close()
             sleep(1)
 
@@ -173,7 +175,7 @@ class Server:
         Summary: This function is used to terminate the client, if the user is done.
         """
 
-        val = input(style.GREEN + 'Terminate server? [Y\N] ' + style.ENDC)
+        val = input(style.GREEN + 'Terminate server? [Y\\N] ' + style.ENDC)
         if val == 'Y':
             self.tcp_socket.close()
             exit(0)

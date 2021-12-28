@@ -1,17 +1,17 @@
 import socket
 from style import style
 from time import sleep
+from struct import unpack
 
 class Client:
-
     def __init__(self):
         self.server_ip = None
         self.server_port = None
         self.tcp_socket = None
 
-        self.TEAM_NAME = "BRLOL LMAO"
-        self.MAGIC_COOKIE = "abcddcba"
-        self.MESSAGE_TYPE = "02"
+        self.TEAM_NAME = "JOE MAMA"
+        self.MAGIC_COOKIE = 0xabcddcba
+        self.MESSAGE_TYPE = 0x02
 
     def look_for_server(self):
         """
@@ -23,19 +23,34 @@ class Client:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         # sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1) DELETE THISSSSSSSS
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-        sock.bind(('', 13117))
+        sock.bind(('', 14000))
 
         while True:
             data, addr = sock.recvfrom(1024)
-            data_hex = data.hex()
-            if data_hex[:8] != self.MAGIC_COOKIE:
-                # print(style.WARNING + "Failed to connect to server: UDP packet didn't contain 0xabcddcba in MAGIC COOKIE field." + style.ENDC)
+            print(addr)
+            try:
+                cookie, msg_type, port = unpack('IbH', data)
+                cookie, msg_type = int(hex(cookie), 16), int(hex(msg_type), 16)
+                print(type(port), port)
+            except Exception as e:
+                print(e)
+                print(style.WARNING + "Failed to connect to server: UDP packet wasn't in the the right format." + style.ENDC)
                 continue
-            if data_hex[8:10] != self.MESSAGE_TYPE:
-                # print(style.WARNING + "Failed to connect to server: UDP packet didn't contain 0x02 in MESSAGE TYPE field." + style.ENDC)
+
+            if cookie != self.MAGIC_COOKIE:
+                print(style.WARNING + "Failed to connect to server: UDP packet didn't contain 0xabcddcba in MAGIC COOKIE field." + style.ENDC)
+                continue
+            if msg_type != self.MESSAGE_TYPE:
+                print(style.WARNING + "Failed to connect to server: UDP packet didn't contain 0x02 in MESSAGE TYPE field." + style.ENDC)
                 continue
             self.server_ip = addr[0]
-            self.server_port = int(data_hex[10:])
+
+            try:
+                self.server_port = int(port)
+            except ValueError as e:
+                print(style.WARNING + f"Failed to connect to server: UDP packet didn't contain a number in the port field. Value was: {port}" + style.ENDC)
+                self.server_ip = None
+                continue
             sock.close()
             break
 
@@ -89,7 +104,7 @@ class Client:
         Summary: This function is used to terminate the client, if the user is done.
         """
 
-        val = input(style.GREEN + 'Terminate client? [Y\N] ' + style.ENDC)
+        val = input(style.GREEN + 'Terminate client? [Y\\N] ' + style.ENDC)
         if val == 'Y':
             exit(0)
 
