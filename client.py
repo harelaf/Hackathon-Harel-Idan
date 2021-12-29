@@ -90,12 +90,7 @@ class Client:
             color_style (string): Is used to add styling to the print command.
         """
 
-        server_msg = '\n'
-        self.tcp_socket.settimeout(15)
-        try:
-            server_msg = str(self.tcp_socket.recv(1024), 'utf8')
-        except:
-            print(style.WARNING + "Server Didn't respond in 15 seconds, leaving connection." + style.ENDC)
+        server_msg = str(self.tcp_socket.recv(1024), 'utf8')
         print(color_style + server_msg + style.ENDC)
 
     def send_client_answer(self):
