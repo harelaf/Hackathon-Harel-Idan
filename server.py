@@ -152,35 +152,6 @@ class Server:
             self.client_answer[1] = team_name
         mutex.release()
 
-    def question_bank(self):
-        operator_functions = {
-            '+': lambda a, b: a + b,
-            '-': lambda a, b: a - b,
-            '*': lambda a, b: a * b,
-            '/': lambda a, b: a / b,
-        }
-        ans = ''
-        eq = ''
-        while len(str(ans)) != 1:
-            first_number = random.choice(range(0, 16))
-            op1, op_func1 = random.choice(list(operator_functions.items()))
-            second_number = random.choice(range(0, 16))
-            op2, op_func2 = random.choice(list(operator_functions.items()))
-            third_number = random.choice(range(0, 16))
-            try:
-                if op1 == '/' or op1 == '*':
-                    ans = op_func2(op_func1(first_number, second_number), third_number)
-                    eq = f'({first_number} {op1} {second_number}) {op2} {third_number}'
-                elif op2 == '/' or op2 == '*':
-                    ans = op_func1(first_number, op_func2(second_number, third_number))
-                    eq = f'{first_number} {op1} ({second_number} {op2} {third_number})'
-                else:
-                    ans = op_func2(op_func1(first_number, second_number), third_number)
-                    eq = f'{first_number} {op1} {second_number} {op2} {third_number}'
-            except ZeroDivisionError:
-                continue
-        return ans, eq
-
     def end_session(self):
         """
         Summary: This function is used to terminate the client, if the user is done.
