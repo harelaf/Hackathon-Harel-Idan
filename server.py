@@ -5,6 +5,7 @@ from time import sleep
 from scapy.arch import get_if_addr
 import random
 from struct import pack
+import question_builder
 
 class Server:
     def __init__(self, magic_cookie, message_type, server_port, client_port):
@@ -26,7 +27,7 @@ class Server:
 
     def send_udp_offers(self):
         """
-        Summary: This function is used to send UDP offers in broadcast, every one second, 
+        Summary: This function is used to send UDP offers in broadcast, every one second,
                  while there are less than 2 clients connected.
         """
 
@@ -82,7 +83,7 @@ class Server:
             clients (list of [socket, (ip, port)]): Using the tcp sockets to send messages.
         """
 
-        ans, eq = self.question_bank()
+        ans, eq = question_builder.QuestionBuilder().get_question()
         msg = f'Welcome to Quick Maths.' \
               f'\nPlayer 1: {self.player_names[0]}' \
               f'\nPlayer 2: {self.player_names[1]}' \
@@ -100,7 +101,7 @@ class Server:
         t2 = threading.Thread(target=self.get_answer, args=(clients[1][0], self.player_names[1], mutex))
         t1.start()
         t2.start()
-        
+
         counter = 0
         while counter < 10 and self.client_answer == [-1, '']:
             counter += 1
@@ -138,13 +139,13 @@ class Server:
         except ValueError as e:
             if len(client_ans) == 0:
                 print(style.RED + f'{team_name} wasn\'t fast enough to answer!' + style.ENDC)
-            else:    
+            else:
                 print(style.RED + f'{team_name} didn\'t enter a digit!' + style.ENDC)
             return
         except socket.error as e:
             print(style.RED + f'{team_name} ran out of time!' + style.ENDC)
             return
-        
+
         mutex.acquire()
         if self.client_answer[0] == -1:
             self.client_answer[0] = ans
@@ -217,5 +218,5 @@ class Server:
 
 
 if __name__ == '__main__':
-    server = Server(magic_cookie=0xabcddcba, message_type=0x02, server_port=4567, client_port=14000)
+    server = Server(magic_cookie=0xabcddcba, message_type=0x02, server_port=4567, client_port=13117)
     server.run_server()
