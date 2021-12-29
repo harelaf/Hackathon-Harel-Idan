@@ -61,7 +61,7 @@ class Client:
                  If the client connects successfully, it sends the team name and waits to start the game.
 
         Returns:
-            Boolean: If the client successfully connects to the server. 
+            Boolean: If the client successfully connects to the server.
         """
 
         print(style.CYAN + f'Received offer from {self.server_ip}, attempting to connect...' + style.ENDC)
@@ -73,6 +73,7 @@ class Client:
             self.tcp_socket.connect((self.server_ip, self.server_port))
         except socket.error as e:
             print(style.WARNING + f'Failed to connect to server: timed out while connecting with TCP.\nException thrown: {str(e)}' + style.ENDC)
+            self.tcp_socket.close()
             return False
 
         print(style.CYAN + f'Successfully connected to server {self.server_ip}\n' + style.ENDC)
@@ -89,7 +90,12 @@ class Client:
             color_style (string): Is used to add styling to the print command.
         """
 
-        server_msg = str(self.tcp_socket.recv(1024), 'utf8')
+        server_msg = '\n'
+        self.tcp_socket.settimeout(15)
+        try:
+            server_msg = str(self.tcp_socket.recv(1024), 'utf8')
+        except:
+            print(style.WARNING + "Server Didn't respond in 15 seconds, leaving connection." + style.ENDC)
         print(color_style + server_msg + style.ENDC)
 
     def send_client_answer(self):
@@ -114,7 +120,7 @@ class Client:
         """
         Summary: This function is used to run all of the logic of the client.
         """
-        
+
         print(style.CYAN + f'Client started successfully!' + style.ENDC)
 
         while True:
@@ -127,7 +133,7 @@ class Client:
             t1.start()
             self.get_msg_from_server(style.BLUE)  # Get game results
             t1.terminate()
-            
+
             if self.tcp_socket is not None:
                 self.tcp_socket.close()
 
@@ -137,5 +143,5 @@ class Client:
 
 
 if __name__ == '__main__':
-    client = Client(magic_cookie=0xabcddcba, message_type=0x02, client_port=14000, team_name='SUS')
+    client = Client(magic_cookie=0xabcddcba, message_type=0x02, client_port=13117, team_name='SUS')
     client.run_client()
