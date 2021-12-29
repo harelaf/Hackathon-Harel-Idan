@@ -12,7 +12,20 @@ class QuestionBuilder:
         }
         self.plus_minus_functions = {
             '+': lambda a, b: a + b,
+            '-': lambda a, b: a - b
+        }
+    def all_operator_functions(self):
+        return {
+            '+': lambda a, b: a + b,
             '-': lambda a, b: a - b,
+            '*': lambda a, b: a * b,
+            '/': lambda a, b: a / b,
+        }
+                
+    def plus_minus_functions(self):
+        return {
+            '+': lambda a, b: a + b,
+            '-': lambda a, b: a - b
         }
 
     def get_numbers_and_ops(self, bound, ops):
@@ -29,7 +42,7 @@ class QuestionBuilder:
         eq = ''
         while len(str(ans)) != 1:
             first_number, op1, op_func1, second_number, op2, op_func2, third_number = self.get_numbers_and_ops(16,
-                                                                                                               self.all_operator_functions)
+                                                                                                               self.all_operator_functions())
             try:
                 if op1 == '/' or op1 == '*':
                     ans = op_func2(op_func1(first_number, second_number), third_number)  # (first */ second) +- third
@@ -52,7 +65,7 @@ class QuestionBuilder:
         eq = ''
         while type(ans) != int:
             first_number, op1, op_func1, second_number, op2, op_func2, third_number = self.get_numbers_and_ops(10,
-                                                                                                               self.all_operator_functions)
+                                                                                                               self.all_operator_functions())
             try:
                 if op1 == '/' or op1 == '*':
                     ans = op_func2(op_func1(first_number, second_number),
@@ -76,7 +89,7 @@ class QuestionBuilder:
         eq = ''
         while type(ans) != int:
             first_number, op1, op_func1, second_number, op2, op_func2, third_number = self.get_numbers_and_ops(10,
-                                                                                                               self.plus_minus_functions)
+                                                                                                               self.plus_minus_functions())
             try:
                 ans = op_func2(op_func1(first_number ** 2, third_number * first_number), second_number)
                 if third_number == 1:

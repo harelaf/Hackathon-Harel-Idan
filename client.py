@@ -138,5 +138,5 @@ class Client:
 
 
 if __name__ == '__main__':
-    client = Client(magic_cookie=0xabcddcba, message_type=0x02, client_port=13117, team_name='SUS')
+    client = Client(magic_cookie=0xabcddcba, message_type=0x02, client_port=1337, team_name='SUS')
     client.run_client()

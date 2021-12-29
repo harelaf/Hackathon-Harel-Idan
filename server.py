@@ -20,7 +20,7 @@ class Server:
         try:
             self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.tcp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-            self.tcp_socket.bind((self.ip_address, self.server_port))
+            self.tcp_socket.bind(('', self.server_port))
         except socket.error as e:
             print(style.WARNING + f'Initialization of TCP SOCKET failed. Server initialization failed. Exiting...' + style.ENDC)
             exit()
@@ -36,10 +36,10 @@ class Server:
         print(style.CYAN + f'Listening on IP address {self.ip_address}' + style.ENDC)
         while self.player_count < 2:
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-            sock.bind((self.ip_address, 3332))
+            sock.bind(('', 3332))
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-            sock.sendto(msg, ("255.255.255.255", self.client_port))
+            sock.sendto(msg, ("172.18.255.255", self.client_port))
             sock.close()
             sleep(1)
 
@@ -189,5 +189,5 @@ class Server:
 
 
 if __name__ == '__main__':
-    server = Server(magic_cookie=0xabcddcba, message_type=0x02, server_port=4567, client_port=13117)
+    server = Server(magic_cookie=0xabcddcba, message_type=0x02, server_port=4567, client_port=1337)
     server.run_server()
